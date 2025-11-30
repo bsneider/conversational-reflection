@@ -731,64 +731,44 @@ async def handle_tool_call(params: FunctionCallParams):
     logger.info(f"🔧 Tool call [{server}]: {tool_name}({tool_args})")
     
     # ==========================================================================
-    # iMessage Tools - Real data from macOS Messages
+    # iMessage Tools - Demo data (real iMessage requires macOS + Full Disk Access)
     # ==========================================================================
     
     if tool_name == "get_messages":
-        try:
-            from imessage_client import get_messages
-            messages = await get_messages(
-                contact=tool_args.get("contact"),
-                since=tool_args.get("since"),
-                limit=tool_args.get("limit", 50)
-            )
-            result = {"status": "success", "messages": messages, "count": len(messages)}
-            await params.result_callback(result)
-            return
-        except Exception as e:
-            logger.error(f"get_messages failed: {e}")
-            result = {"status": "error", "error": str(e), "note": "Ensure macOS with Full Disk Access"}
-            await params.result_callback(result)
-            return
+        contact = tool_args.get("contact", "Contact")
+        # Demo messages - in production, could integrate with imessage_client.py
+        demo_messages = [
+            {"text": "After everything I've done for you, this is how you repay me?", "is_from_me": False, "sender": contact, "timestamp": "2025-11-01T10:00:00"},
+            {"text": "Mom, I need to make my own decisions about the wedding.", "is_from_me": True, "sender": "Me", "timestamp": "2025-11-01T10:05:00"},
+            {"text": "You're being so selfish. I won't be coming to the wedding.", "is_from_me": False, "sender": contact, "timestamp": "2025-11-01T10:10:00"},
+            {"text": "That's your choice to make.", "is_from_me": True, "sender": "Me", "timestamp": "2025-11-01T10:15:00"},
+            {"text": "I can't believe you would do this to your own mother.", "is_from_me": False, "sender": contact, "timestamp": "2025-11-01T10:20:00"},
+        ]
+        result = {"status": "success", "messages": demo_messages, "count": len(demo_messages), "data_source": "demo"}
+        await params.result_callback(result)
+        return
     
     elif tool_name == "get_contacts":
-        try:
-            from imessage_client import get_contacts
-            contacts = await get_contacts(limit=tool_args.get("limit", 100))
-            result = {"status": "success", "contacts": contacts, "count": len(contacts)}
-            await params.result_callback(result)
-            return
-        except Exception as e:
-            logger.error(f"get_contacts failed: {e}")
-            result = {"status": "error", "error": str(e)}
-            await params.result_callback(result)
-            return
+        # Demo contacts
+        demo_contacts = [
+            {"name": "Mom", "identifier": "+1234567890"},
+            {"name": "Dad", "identifier": "+1234567891"},
+            {"name": "Sister", "identifier": "+1234567892"},
+        ]
+        result = {"status": "success", "contacts": demo_contacts, "count": len(demo_contacts), "data_source": "demo"}
+        await params.result_callback(result)
+        return
     
-    elif tool_name == "get_conversations":
-        try:
-            from imessage_client import list_conversations
-            conversations = await list_conversations(limit=tool_args.get("limit", 50))
-            result = {"status": "success", "conversations": conversations, "count": len(conversations)}
-            await params.result_callback(result)
-            return
-        except Exception as e:
-            logger.error(f"get_conversations failed: {e}")
-            result = {"status": "error", "error": str(e)}
-            await params.result_callback(result)
-            return
-    
-    elif tool_name == "list_chats":
-        try:
-            from imessage_client import list_conversations
-            chats = await list_conversations(limit=tool_args.get("limit", 50))
-            result = {"status": "success", "chats": chats, "count": len(chats)}
-            await params.result_callback(result)
-            return
-        except Exception as e:
-            logger.error(f"list_chats failed: {e}")
-            result = {"status": "error", "error": str(e)}
-            await params.result_callback(result)
-            return
+    elif tool_name == "get_conversations" or tool_name == "list_chats":
+        # Demo conversations
+        demo_chats = [
+            {"id": "chat1", "display_name": "Mom", "participants": ["+1234567890"], "is_group": False, "unread_count": 0},
+            {"id": "chat2", "display_name": "Dad", "participants": ["+1234567891"], "is_group": False, "unread_count": 0},
+            {"id": "chat3", "display_name": "Family Group", "participants": ["+1234567890", "+1234567891", "+1234567892"], "is_group": True, "unread_count": 0},
+        ]
+        result = {"status": "success", "chats": demo_chats, "count": len(demo_chats), "data_source": "demo"}
+        await params.result_callback(result)
+        return
     
     elif tool_name == "watch_messages":
         # Real-time message watching isn't feasible in a request/response model
@@ -1020,34 +1000,23 @@ async def handle_tool_call(params: FunctionCallParams):
         return
     
     # ==========================================================================
-    # Conflict Analysis Tools - Uses real iMessage data
+    # Conflict Analysis Tools - Uses demo data for viral video demo
     # ==========================================================================
     
     elif tool_name == "analyze_conflict_pattern":
         try:
             from conflict_analysis import analyze_conflict_pattern, to_dict
-            from imessage_client import get_messages
             
             contact = tool_args.get("contact", "Contact")
             
-            # Try to fetch real messages, fall back to demo data if unavailable
-            try:
-                real_messages = await get_messages(contact=contact, limit=100)
-                if real_messages:
-                    messages = real_messages
-                    logger.info(f"Analyzing {len(messages)} real messages for {contact}")
-                else:
-                    raise ValueError("No messages found")
-            except Exception as fetch_error:
-                logger.warning(f"Could not fetch real messages: {fetch_error}, using demo data")
-                # Demo messages for testing without iMessage access
-                messages = [
-                    {"text": "After everything I've done for you, this is how you repay me?", "is_from_me": False, "timestamp": "2025-11-01T10:00:00"},
-                    {"text": "Mom, I need to make my own decisions about the wedding.", "is_from_me": True, "timestamp": "2025-11-01T10:05:00"},
-                    {"text": "You're being so selfish. I won't be coming to the wedding.", "is_from_me": False, "timestamp": "2025-11-01T10:10:00"},
-                    {"text": "That's your choice to make.", "is_from_me": True, "timestamp": "2025-11-01T10:15:00"},
-                    {"text": "I can't believe you would do this to your own mother.", "is_from_me": False, "timestamp": "2025-11-01T10:20:00"},
-                ]
+            # Demo messages that show common conflict patterns
+            messages = [
+                {"text": "After everything I've done for you, this is how you repay me?", "is_from_me": False, "timestamp": "2025-11-01T10:00:00"},
+                {"text": "Mom, I need to make my own decisions about the wedding.", "is_from_me": True, "timestamp": "2025-11-01T10:05:00"},
+                {"text": "You're being so selfish. I won't be coming to the wedding.", "is_from_me": False, "timestamp": "2025-11-01T10:10:00"},
+                {"text": "That's your choice to make.", "is_from_me": True, "timestamp": "2025-11-01T10:15:00"},
+                {"text": "I can't believe you would do this to your own mother.", "is_from_me": False, "timestamp": "2025-11-01T10:20:00"},
+            ]
             
             analysis = analyze_conflict_pattern(
                 messages=messages,
@@ -1056,7 +1025,7 @@ async def handle_tool_call(params: FunctionCallParams):
                 topic=tool_args.get("topic")
             )
             result = to_dict(analysis)
-            result["data_source"] = "real" if 'real_messages' in dir() and real_messages else "demo"
+            result["data_source"] = "demo"
             await params.result_callback(result)
             return
         except Exception as e:
@@ -1068,34 +1037,24 @@ async def handle_tool_call(params: FunctionCallParams):
     elif tool_name == "get_relationship_summary":
         try:
             from conflict_analysis import get_relationship_summary, to_dict
-            from imessage_client import get_messages
             
             contact = tool_args.get("contact", "Contact")
             
-            # Try to fetch real messages, fall back to demo data if unavailable
-            try:
-                real_messages = await get_messages(contact=contact, limit=200)
-                if real_messages:
-                    messages = real_messages
-                    logger.info(f"Summarizing {len(messages)} real messages for {contact}")
-                else:
-                    raise ValueError("No messages found")
-            except Exception as fetch_error:
-                logger.warning(f"Could not fetch real messages: {fetch_error}, using demo data")
-                messages = [
-                    {"text": "I love you but you need to respect my boundaries", "is_from_me": True},
-                    {"text": "You're overreacting as usual", "is_from_me": False},
-                    {"text": "Happy birthday mom! ❤️", "is_from_me": True},
-                    {"text": "Thank you sweetheart", "is_from_me": False},
-                    {"text": "Why didn't you call me yesterday?", "is_from_me": False},
-                ]
+            # Demo messages showing relationship patterns
+            messages = [
+                {"text": "I love you but you need to respect my boundaries", "is_from_me": True},
+                {"text": "You're overreacting as usual", "is_from_me": False},
+                {"text": "Happy birthday mom! ❤️", "is_from_me": True},
+                {"text": "Thank you sweetheart", "is_from_me": False},
+                {"text": "Why didn't you call me yesterday?", "is_from_me": False},
+            ]
             
             summary = get_relationship_summary(
                 messages=messages,
                 contact=contact
             )
             result = to_dict(summary)
-            result["data_source"] = "real" if 'real_messages' in dir() and real_messages else "demo"
+            result["data_source"] = "demo"
             await params.result_callback(result)
             return
         except Exception as e:
@@ -1459,28 +1418,26 @@ async def handle_tool_call(params: FunctionCallParams):
             return
     
     elif tool_name == "create_contact_voice_profile":
-        # Uses infer_voice_profile with real iMessage data
+        # Creates voice profile based on provided parameters
         try:
             from voice_synthesis import infer_voice_profile
-            from imessage_client import get_messages
             
             contact = tool_args.get("contact", "")
-            gender = tool_args.get("voice_gender")
-            age_range = tool_args.get("age_range")
+            gender = tool_args.get("voice_gender", "female")
+            age_range = tool_args.get("age_range", "50s")
             
-            # Fetch real messages for analysis
-            try:
-                messages = await get_messages(contact=contact, limit=50)
-                message_texts = [{"text": m.get("text", ""), "is_from_me": m.get("is_from_me", False)} for m in messages]
-            except Exception as fetch_err:
-                logger.warning(f"Could not fetch messages for voice profile: {fetch_err}")
-                message_texts = []
+            # Demo messages showing typical difficult parent patterns
+            demo_messages = [
+                {"text": "After everything I've done for you...", "is_from_me": False},
+                {"text": "You never think about how I feel.", "is_from_me": False},
+                {"text": "I'm just so disappointed.", "is_from_me": False},
+            ]
             
-            # Infer profile from messages
+            # Infer profile from demo messages
             result = infer_voice_profile(
                 contact_name=contact,
-                messages=message_texts,
-                relationship_hint=f"{gender or 'unknown'} in {age_range or 'unknown age'}"
+                messages=demo_messages,
+                relationship_hint=f"{gender} parent in {age_range}"
             )
             
             # Override with provided parameters if specified
@@ -1518,12 +1475,17 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     provider = get_llm_provider()
     logger.info(f"Using LLM provider: {provider.value}")
 
-    # Initialize services
-    stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY", ""))
+    # Initialize STT - Deepgram with optimized settings for emotional conversations
+    stt = DeepgramSTTService(
+        api_key=os.getenv("DEEPGRAM_API_KEY", ""),
+        # Deepgram nova-2 is best for conversational audio
+    )
 
+    # Initialize TTS - Cartesia with warm, supportive voice for coaching
+    # Voice options: Try different voices for the coach vs. the difficult person
     tts = CartesiaTTSService(
         api_key=os.getenv("CARTESIA_API_KEY", ""),
-        voice_id="71a7ad14-091c-4e8e-a314-022ece01c121",  # British Reading Lady
+        voice_id=os.getenv("CARTESIA_VOICE_ID", "79a125e8-cd45-4c13-8a67-188112f4dd22"),  # Warm female voice
     )
 
     # Create LLM service
@@ -1581,8 +1543,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
-        # Kick off the conversation.
-        messages.append({"role": "system", "content": "Say hello and briefly introduce yourself."})
+        # Compelling hook for viral content - immediately engage with emotion
+        messages.append({
+            "role": "system", 
+            "content": "Greet the user warmly as Ginger. Ask them: 'Who in your life do you need to have a difficult conversation with? I can help you practice.' Be direct and inviting - this is the hook for the video."
+        })
         await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
